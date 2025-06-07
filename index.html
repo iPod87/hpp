@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator HPP & Harga Jual (Advanced)</title>
+    <!-- Menggunakan Tailwind CSS untuk styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Menggunakan Font Inter dari Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Icon untuk tab browser -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E%F0%9F%93%8B%3C/text%3E%3C/svg%3E">
+    <!-- Pustaka SheetJS untuk Export ke Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <!-- Pustaka CryptoJS untuk Enkripsi -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Security: Disable Text Selection */
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none; /* Firefox */
+            -ms-user-select: none; /* IE10+/Edge */
+            user-select: none; /* Standard */
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+        /* Menghilangkan panah di input number */
+        input[type=number] { -moz-appearance: textfield; }
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .summary-box {
+            background-color: #f3f4f6;
+            border-left: 4px solid #4ade80; /* green-400 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800" oncontextmenu="return false;">
+
+    <!-- Security: Password Protection Overlay -->
+    <div id="password-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-95 z-50 flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-sm text-center">
+            <img id="logo-image-lock" class="h-24 w-auto mx-auto mb-4" src="https://i.ibb.co/6gSj7Yd/Innovative-Aqurasi-Logo-with-Deep-Blue-A4.jpg" alt="Aqurasi Logo">
+            <h2 class="text-2xl font-bold mb-2">Akses Terproteksi</h2>
+            <p class="text-gray-600 mb-6">Silakan masukkan kata sandi untuk melanjutkan.</p>
+            <div class="space-y-4">
+                <input type="password" id="password-input" class="w-full p-3 border rounded-md text-center focus:ring-2 focus:ring-teal-500" placeholder="Kata Sandi">
+                <button onclick="verifyAccess()" class="w-full bg-teal-600 text-white font-bold py-3 rounded-md hover:bg-teal-700 transition">Buka Aplikasi</button>
+            </div>
+            <p id="password-error" class="text-red-500 text-sm mt-4 hidden">Kata sandi salah. Silakan coba lagi.</p>
+        </div>
+    </div>
+
+
+    <!-- Security: Digital Watermark -->
+    <div class="fixed inset-0 flex items-center justify-center text-gray-200 text-8xl font-black uppercase select-none pointer-events-none z-0 opacity-20 -rotate-45">
+        AQURASI
+    </div>
+
+    <div class="container mx-auto p-4 md:p-8 max-w-5xl relative z-10">
+        <header class="text-center mb-12">
+            <div class="flex justify-center items-center gap-4 relative">
+                <img id="logo-image" class="h-24 w-auto object-contain" src="https://i.ibb.co/6gSj7Yd/Innovative-Aqurasi-Logo-with-Deep-Blue-A4.jpg" alt="Logo">
+                <input type="file" id="logo-uploader" class="hidden" accept="image/*" onchange="handleLogoUpload(event)">
+                <button onclick="document.getElementById('logo-uploader').click()" class="absolute top-0 right-0 bg-gray-200 text-gray-600 text-xs font-semibold py-1 px-2 rounded-full hover:bg-gray-300 transition" title="Ganti Logo">Ganti Logo</button>
+            </div>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Kolom Kiri: Input Biaya -->
+            <div class="space-y-6">
+                <!-- 1. Biaya Bahan Baku (Stok) -->
+                <section class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-semibold mb-4 border-b pb-2">1. Input Stok Bahan Baku</h2>
+                    <div id="form-bahan">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <input type="text" id="nama-bahan" placeholder="Nama Bahan Baku" class="p-2 border rounded-md focus:ring-2 focus:ring-blue-500">
+                            <input type="number" id="harga-beli-bahan" placeholder="Total Harga Beli" class="p-2 border rounded-md focus:ring-2 focus:ring-blue-500">
+                            <input type="number" id="jumlah-beli-bahan" placeholder="Jumlah Beli" class="p-2 border rounded-md focus:ring-2 focus:ring-blue-500">
+                            <select id="satuan-beli-bahan" class="p-2 border rounded-md bg-white focus:ring-2 focus:ring-blue-500">
+                                <option value="gram">gram (g)</option>
+                                <option value="kg">kilogram (kg)</option>
+                                <option value="ml">mililiter (ml)</option>
+                                <option value="liter">liter (L)</option>
+                                <option value="pcs">pcs / buah</option>
+                            </select>
+                        </div>
+                         <div class="flex gap-4">
+                            <button id="btn-submit-bahan" onclick="tambahBahan()" class="w-full bg-blue-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-600 transition">Tambah ke Stok</button>
+                             <button id="btn-cancel-bahan" onclick="cancelEdit('bahan')" class="w-full bg-gray-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-gray-600 transition hidden">Batal</button>
+                        </div>
+                    </div>
+                    <div class="mt-4 overflow-x-auto">
+                        <table class="min-w-full bg-white">
+                            <thead class="bg-gray-50 text-sm">
+                                <tr>
+                                    <th class="py-2 px-3 text-left">Bahan</th>
+                                    <th class="py-2 px-3 text-left">Harga Dasar</th>
+                                    <th class="py-2 px-3 text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabel-bahan"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- 2. Resep per Porsi -->
+                <section class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-semibold mb-4 border-b pb-2">2. Buat Resep (untuk 1 Porsi)</h2>
+                     <div id="form-resep">
+                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <select id="pilihan-bahan-resep" class="p-2 border rounded-md bg-white focus:ring-2 focus:ring-green-500">
+                                <option value="">-- Pilih Bahan dari Stok --</option>
+                            </select>
+                             <input type="number" id="jumlah-pakai-resep" placeholder="Jumlah Pakai" class="p-2 border rounded-md focus:ring-2 focus:ring-green-500">
+                        </div>
+                        <p class="text-xs text-gray-500 mb-4 -mt-2">Satuan pemakaian (g/ml/pcs) harus sesuai satuan dasar bahan.</p>
+                        <div class="flex gap-4">
+                            <button id="btn-submit-resep" onclick="tambahKeResep()" class="w-full bg-green-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-green-600 transition">Tambah ke Resep</button>
+                            <button id="btn-cancel-resep" onclick="cancelEdit('resep')" class="w-full bg-gray-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-gray-600 transition hidden">Batal</button>
+                        </div>
+                    </div>
+                    <div class="mt-4 overflow-x-auto">
+                        <table class="min-w-full bg-white">
+                            <thead class="bg-gray-50 text-sm">
+                                <tr>
+                                    <th class="py-2 px-3 text-left">Bahan Resep</th>
+                                    <th class="py-2 px-3 text-left">Jumlah</th>
+                                    <th class="py-2 px-3 text-left">Biaya</th>
+                                    <th class="py-2 px-3 text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabel-resep"></tbody>
+                            <tfoot>
+                               <tr>
+                                    <td colspan="2" class="font-bold text-right py-2 px-3">Biaya Bahan per Porsi:</td>
+                                    <td id="total-resep" class="font-bold py-2 px-3" colspan="2">Rp 0</td>
+                               </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </section>
+
+                 <!-- 3. Biaya Tenaga Kerja (per Batch)-->
+                <section class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-semibold mb-4 border-b pb-2">3. Biaya Tenaga Kerja (per Batch)</h2>
+                     <div id="form-tenaga">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <input type="text" id="nama-tenaga" placeholder="Deskripsi" class="md:col-span-2 p-2 border rounded-md focus:ring-2 focus:ring-indigo-500">
+                            <input type="number" id="harga-tenaga" placeholder="Biaya Total" class="p-2 border rounded-md focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                         <div class="flex gap-4">
+                            <button id="btn-submit-tenaga" onclick="tambahBiayaLain('tenaga')" class="w-full bg-indigo-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-600 transition">Tambah Biaya</button>
+                            <button id="btn-cancel-tenaga" onclick="cancelEdit('tenaga')" class="w-full bg-gray-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-gray-600 transition hidden">Batal</button>
+                        </div>
+                    </div>
+                    <div class="mt-4 overflow-x-auto">
+                        <table class="min-w-full bg-white">
+                            <tbody id="tabel-tenaga"></tbody>
+                            <tfoot>
+                               <tr>
+                                    <td class="font-bold text-right py-2 px-4">Total Biaya Tenaga Kerja (Batch):</td>
+                                    <td id="total-tenaga" class="font-bold py-2 px-4">Rp 0</td>
+                               </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Kolom Kanan: Biaya Lain & Kalkulasi -->
+            <div class="space-y-6">
+                <!-- 4. Biaya Depresiasi Aset (Bulanan) -->
+                <section class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-semibold mb-4 border-b pb-2">4. Biaya Depresiasi Aset (Bulanan)</h2>
+                    <div id="form-aset">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <input type="text" id="nama-aset" placeholder="Nama Aset (e.g., Oven)" class="md:col-span-2 p-2 border rounded-md focus:ring-2 focus:ring-orange-500">
+                            <input type="number" id="harga-aset" placeholder="Harga Perolehan Aset" class="p-2 border rounded-md focus:ring-2 focus:ring-orange-500">
+                            <input type="number" id="residu-aset" placeholder="Nilai Residu/Sisa" class="p-2 border rounded-md focus:ring-2 focus:ring-orange-500">
+                            <input type="number" id="manfaat-aset" placeholder="Masa Manfaat (Tahun)" class="p-2 border rounded-md focus:ring-2 focus:ring-orange-500">
+                        </div>
+                        <div class="flex gap-4">
+                            <button id="btn-submit-aset" onclick="tambahAset()" class="w-full bg-orange-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-orange-600 transition">Tambah Aset</button>
+                            <button id="btn-cancel-aset" onclick="cancelEdit('aset')" class="w-full bg-gray-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-gray-600 transition hidden">Batal</button>
+                        </div>
+                    </div>
+                    <div class="mt-4 overflow-x-auto">
+                        <table class="min-w-full bg-white">
+                            <thead class="bg-gray-50 text-sm">
+                                <tr>
+                                    <th class="py-2 px-3 text-left">Aset</th>
+                                    <th class="py-2 px-3 text-left">Biaya/Bulan</th>
+                                    <th class="py-2 px-3 text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabel-aset"></tbody>
+                            <tfoot>
+                               <tr>
+                                    <td class="font-bold text-right py-2 px-3">Total Depresiasi/Bulan:</td>
+                                    <td id="total-aset" class="font-bold py-2 px-3" colspan="2">Rp 0</td>
+                               </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </section>
+                
+                <!-- 5. Biaya Overhead (Bulanan) -->
+                <section class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-semibold mb-4 border-b pb-2">5. Biaya Overhead Tetap (Bulanan)</h2>
+                     <div id="form-overhead">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                             <input type="text" id="nama-overhead" placeholder="Sewa, Listrik, Gaji" class="md:col-span-2 p-2 border rounded-md focus:ring-2 focus:ring-purple-500">
+                             <input type="number" id="harga-overhead" placeholder="Biaya per Bulan" class="p-2 border rounded-md focus:ring-2 focus:ring-purple-500">
+                        </div>
+                        <div class="flex gap-4">
+                            <button id="btn-submit-overhead" onclick="tambahBiayaLain('overhead')" class="w-full bg-purple-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-purple-600 transition">Tambah Biaya</button>
+                            <button id="btn-cancel-overhead" onclick="cancelEdit('overhead')" class="w-full bg-gray-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-gray-600 transition hidden">Batal</button>
+                        </div>
+                    </div>
+                     <div class="mt-4 overflow-x-auto">
+                        <table class="min-w-full bg-white">
+                             <tbody id="tabel-overhead"></tbody>
+                             <tfoot>
+                               <tr>
+                                    <td class="font-bold text-right py-2 px-4">Total Overhead/Bulan:</td>
+                                    <td id="total-overhead" class="font-bold py-2 px-4">Rp 0</td>
+                               </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- 6. Kalkulasi Harga Jual -->
+                <section id="kalkulasi" class="bg-gray-800 text-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-semibold mb-4 border-b border-gray-600 pb-2">6. Kalkulasi Final per Batch</h2>
+                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                        <div>
+                            <label for="jumlah-porsi-batch" class="block text-sm font-medium text-gray-300">Jumlah Porsi per Batch</label>
+                            <input type="number" id="jumlah-porsi-batch" value="10" class="mt-1 p-2 w-full border rounded-md focus:ring-2 focus:ring-teal-500 bg-gray-700 border-gray-600">
+                        </div>
+                        <div>
+                            <label for="jumlah-batch-bulan" class="block text-sm font-medium text-gray-300">Jml Batch/Produk per Bulan</label>
+                            <input type="number" id="jumlah-batch-bulan" value="20" class="mt-1 p-2 w-full border rounded-md focus:ring-2 focus:ring-teal-500 bg-gray-700 border-gray-600">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="margin-profit" class="block text-sm font-medium text-gray-300">Margin Profit (%)</label>
+                            <input type="number" id="margin-profit" value="50" class="mt-1 p-2 w-full border rounded-md focus:ring-2 focus:ring-teal-500 bg-gray-700 border-gray-600">
+                        </div>
+                    </div>
+                    <button onclick="hitungSemua()" class="w-full bg-teal-500 text-white font-bold py-3 px-4 rounded-md hover:bg-teal-600 transition text-lg">HITUNG HARGA JUAL</button>
+                </section>
+            </div>
+        </main>
+
+        <!-- Hasil Kalkulasi -->
+        <section id="hasil-kalkulasi" class="bg-teal-800 text-white mt-8 p-6 rounded-lg shadow-lg hidden">
+            <h2 class="text-2xl font-bold mb-6 text-center">🎉 Hasil Kalkulasi Anda 🎉</h2>
+             <div class="summary-box p-4 rounded-md mb-6 text-gray-800 text-sm">
+                <h3 class="font-bold mb-2">Ringkasan Biaya Produksi (HPP) per Batch</h3>
+                <div class="flex justify-between border-b border-gray-300 py-1"><span>Total Biaya Bahan Baku (Batch)</span><span id="summary-bahan" class="font-medium"></span></div>
+                <div class="flex justify-between border-b border-gray-300 py-1"><span>Total Biaya Tenaga Kerja (Batch)</span><span id="summary-tenaga" class="font-medium"></span></div>
+                <div class="flex justify-between py-1"><span>Alokasi Biaya Tetap (Batch)</span><span id="summary-biaya-tetap" class="font-medium"></span></div>
+                <div class="flex justify-between font-bold text-base mt-2 pt-2 border-t-2 border-gray-400"><span>TOTAL HPP (per BATCH)</span><span id="hasil-total-hpp-batch"></span></div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
+                <div class="bg-teal-600 p-4 rounded-md">
+                    <p class="font-medium text-teal-100">HPP per Porsi</p>
+                    <p id="hasil-hpp-porsi" class="text-3xl font-bold">Rp 0</p>
+                </div>
+                <div class="bg-yellow-500 p-4 rounded-md text-gray-900">
+                    <p class="font-semibold">💰 Rekomendasi Harga Jual</p>
+                    <p id="hasil-harga-jual" class="text-4xl font-extrabold">Rp 0</p>
+                </div>
+            </div>
+             <p class="text-center text-sm mt-4 text-teal-200">Berdasarkan HPP per porsi ditambah profit <span id="profit-percentage" class="font-bold"></span>.</p>
+            
+            <div class="mt-6 border-t border-teal-600 pt-4">
+                 <h3 class="text-lg font-semibold text-center text-white mb-3">Simpan Hasil Perhitungan</h3>
+                 <div class="flex flex-col md:flex-row gap-4 items-center">
+                    <input type="text" id="nama-produk-simpan" placeholder="Masukkan Nama Produk (e.g., Donat Coklat)" class="w-full p-2 border rounded-md focus:ring-2 focus:ring-yellow-500 bg-gray-100 text-gray-800">
+                    <button onclick="simpanProduk()" class="w-full md:w-auto bg-yellow-500 text-gray-900 font-bold py-2 px-6 rounded-md hover:bg-yellow-400 transition">Simpan Produk</button>
+                 </div>
+            </div>
+        </section>
+        
+        <section id="produk-tersimpan" class="bg-white mt-8 p-6 rounded-lg shadow-md">
+             <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h2 class="text-2xl font-semibold">📦 Produk Tersimpan</h2>
+                <div class="flex items-center gap-2">
+                    <input type="file" id="excel-importer" class="hidden" accept=".xlsx, .xls" onchange="handleExcelImport(event)">
+                    <button onclick="openImportConfirmation()" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-700 transition flex items-center gap-2 text-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-arrow-in-down" viewBox="0 0 16 16">
+                          <path fill-rule="evenodd" d="M3.5 10a.5.5 0 0 1-.5-.5v-8a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 0 0 1h2A1.5 1.5 0 0 0 14 9.5v-8A1.5 1.5 0 0 0 12.5 0h-9A1.5 1.5 0 0 0 2 1.5v8A1.5 1.5 0 0 0 3.5 11h2a.5.5 0 0 0 0-1z"/>
+                          <path fill-rule="evenodd" d="M7.646 15.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 14.293V5.5a.5.5 0 0 0-1 0v8.793l-2.146-2.147a.5.5 0 0 0-.708.708z"/>
+                        </svg>
+                        Import
+                    </button>
+                    <button onclick="exportToExcel()" class="bg-emerald-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-emerald-700 transition flex items-center gap-2 text-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-excel-fill" viewBox="0 0 16 16">
+                            <path d="M9.293 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.707A1 1 0 0 0 13.707 4L10 .293A1 1 0 0 0 9.293 0M9.5 3.5v-2l3 3h-2a1 1 0 0 1-1-1M5.884 6.68a.5.5 0 1 0-.768.64L7.349 10l-2.233 2.68a.5.5 0 0 0 .768.64L8 10.781l2.116 2.54a.5.5 0 0 0 .768-.64L8.651 10l2.233-2.68a.5.5 0 0 0-.768-.64L8 9.219l-2.116-2.54z"/>
+                        </svg>
+                        Export
+                    </button>
+                </div>
+            </div>
+             <div class="overflow-x-auto">
+                <table class="min-w-full bg-white">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="py-2 px-4 text-left">Nama Produk</th>
+                            <th class="py-2 px-4 text-left">HPP/Porsi</th>
+                            <th class="py-2 px-4 text-left">Harga Jual</th>
+                            <th class="py-2 px-4 text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabel-produk-tersimpan">
+                         <tr><td colspan="4" class="text-center text-gray-500 py-4">Belum ada produk yang disimpan.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </div>
+    
+    <!-- Modal Detail Produk -->
+    <div id="modal-detail-produk" class="fixed inset-0 bg-black bg-opacity-60 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-full overflow-y-auto">
+            <div class="p-6 border-b">
+                <h3 id="modal-title" class="text-2xl font-bold">Detail Perhitungan Produk</h3>
+            </div>
+            <div id="modal-content" class="p-6 space-y-4 text-sm">
+                <!-- Konten detail akan di-generate oleh JavaScript -->
+            </div>
+            <div class="p-6 bg-gray-50 border-t flex justify-end gap-4">
+                <button id="modal-btn-edit" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-md hover:bg-blue-700 transition">Muat untuk Diedit</button>
+                <button onclick="tutupModal()" class="bg-gray-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-gray-600 transition">Tutup</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Konfirmasi Import -->
+    <div id="modal-confirm-import" class="fixed inset-0 bg-black bg-opacity-60 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+             <div class="p-6">
+                <h3 class="text-xl font-bold mb-4">Konfirmasi Import</h3>
+                <p class="text-gray-600">Mengimpor file Excel akan menimpa semua data yang ada saat ini (produk, bahan baku, biaya, dll). Apakah Anda yakin ingin melanjutkan?</p>
+            </div>
+            <div class="p-4 bg-gray-50 border-t flex justify-end gap-4">
+                <button onclick="document.getElementById('excel-importer').click(); tutupModalImport();" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-md hover:bg-blue-700 transition">Ya, Lanjutkan</button>
+                <button onclick="tutupModalImport()" class="bg-gray-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-gray-600 transition">Batal</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer Trademark -->
+    <footer class="text-center mt-12 py-4">
+        <p class="text-sm text-gray-500">&copy; 2025 HPP Kalkulator Aqurasi. Dibuat Dengan Hati Untuk Membantu Bisnis Anda.</p>
+    </footer>
+
+    <script>
+        // Obfuscated Code - FUNGSI UTAMA KALKULATOR
+        // Lapisan keamanan untuk mempersulit rekayasa balik
+        (function() {
+            'use strict';
+            const _0x1c3e3e = function() { // This function is for creating one-time callable functions
+                let _0x27749f = true;
+                return function(_0x2d1a0e, _0x3b299e) {
+                    const _0x4d5f9b = _0x27749f ? function() {
+                        if (_0x3b299e) {
+                            const _0x56a623 = _0x3b299e.apply(_0x2d1a0e, arguments);
+                            _0x3b299e = null;
+                            return _0x56a623;
+                        }
+                    } : function() {};
+                    _0x27749f = false;
+                    return _0x4d5f9b;
+                };
+            }();
+            const _0x25a623 = _0x1c3e3e(this, function() {
+                let _0x16b042;
+                try {
+                    const _0x1c00d4 = Function('return (function() ' + '{}.constructor("return this")( )' + ');');
+                    _0x16b042 = _0x1c00d4();
+                } catch (_0x398031) {
+                    _0x16b042 = window;
+                }
+                const _0x27d142 = _0x16b042.console = _0x16b042.console || {};
+                const _0x4380f7 = ['log', 'warn', 'info', 'error', 'exception', 'table', 'trace'];
+                for (let _0x4778be = 0; _0x4778be < _0x4380f7.length; _0x4778be++) {
+                    const _0x27f1c9 = _0x1c3e3e.constructor.prototype.bind(_0x1c3e3e);
+                    const _0x2b81d7 = _0x4380f7[_0x4778be];
+                    const _0x153bd4 = _0x27d142[_0x2b81d7] || _0x27f1c9;
+                    _0x27f1c9['__proto__'] = _0x1c3e3e.bind(_0x1c3e3e);
+                    _0x27f1c9.toString = _0x153bd4.toString.bind(_0x153bd4);
+                    _0x27d142[_0x2b81d7] = _0x27f1c9;
+                }
+            });
+            _0x25a623();
+            let data = {
+                bahan: [],
+                resep: [],
+                tenaga: [],
+                overhead: [],
+                aset: [],
+                produk: []
+            };
+            let editState = {
+                tipe: null,
+                id: null
+            };
+            let snapshotKalkulasi = null;
+            const ENCRYPTION_KEY = 'HPP-Calculator#123';
+            const LOCAL_STORAGE_KEY = 'hppCalculatorEncryptedData';
+
+            function saveDataToLocal() {
+                try {
+                    const jsonString = JSON.stringify(data);
+                    const encryptedData = CryptoJS.AES.encrypt(jsonString, ENCRYPTION_KEY).toString();
+                    localStorage.setItem(LOCAL_STORAGE_KEY, encryptedData);
+                } catch (e) {
+                    console.error("Gagal menyimpan data:", e);
+                }
+            }
+
+            function loadDataFromLocal() {
+                const encryptedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+                if (encryptedData) {
+                    try {
+                        const bytes = CryptoJS.AES.decrypt(encryptedData, ENCRYPTION_KEY);
+                        const decryptedString = bytes.toString(CryptoJS.enc.Utf8);
+                        if (decryptedString) {
+                            data = JSON.parse(decryptedString);
+                        } else {
+                            console.error("Gagal mendekripsi data: Kunci salah atau data korup.");
+                        }
+                    } catch (e) {
+                        console.error("Gagal memuat atau mem-parsing data:", e);
+                    }
+                }
+            }
+            const formatRupiah = (_0x3a4ax1) => new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 2
+            }).format(_0x3a4ax1);
+            window.editItem = function(_0x27f1c9, _0x2b81d7) {
+                cancelAllEdits();
+                editState = {
+                    tipe: _0x27f1c9,
+                    id: _0x2b81d7
+                };
+                const _0x16b042 = data[_0x27f1c9].find(_0x1a8c9b => _0x1a8c9b.id === _0x2b81d7);
+                if (!_0x16b042) return;
+                const _0x25a623 = document.getElementById(`btn-submit-${_0x27f1c9}`);
+                const _0x398031 = document.getElementById(`btn-cancel-${_0x27f1c9}`);
+                _0x25a623.textContent = 'Update';
+                _0x25a623.className = 'w-full bg-yellow-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-yellow-600 transition';
+                _0x25a623.onclick = () => updateItem_obf(_0x27f1c9, _0x2b81d7);
+                _0x398031.classList.remove('hidden');
+                if (_0x27f1c9 === 'bahan') {
+                    document.getElementById('nama-bahan').value = _0x16b042.nama;
+                    document.getElementById('harga-beli-bahan').value = _0x16b042.hargaBeli;
+                    document.getElementById('jumlah-beli-bahan').value = _0x16b042.jumlahBeli;
+                    document.getElementById('satuan-beli-bahan').value = _0x16b042.satuanBeli;
+                } else if (_0x27f1c9 === 'resep') {
+                    document.getElementById('pilihan-bahan-resep').value = _0x16b042.bahanId;
+                    document.getElementById('jumlah-pakai-resep').value = _0x16b042.jumlahPakai;
+                } else if (_0x27f1c9 === 'aset') {
+                    document.getElementById('nama-aset').value = _0x16b042.nama;
+                    document.getElementById('harga-aset').value = _0x16b042.harga;
+                    document.getElementById('residu-aset').value = _0x16b042.residu;
+                    document.getElementById('manfaat-aset').value = _0x16b042.manfaat;
+                } else {
+                    document.getElementById(`nama-${_0x27f1c9}`).value = _0x16b042.nama;
+                    document.getElementById(`harga-${_0x27f1c9}`).value = _0x16b042.harga;
+                }
+            };
+
+            function updateItem_obf(_0x4778be, _0x27f1c9) { // Renamed from _0x1c3e3e
+                const _0x2b81d7 = data[_0x4778be].findIndex(_0x1a8c9b => _0x1a8c9b.id === _0x27f1c9);
+                if (_0x2b81d7 === -1) return;
+                if (_0x4778be === 'bahan') {
+                    data.bahan[_0x2b81d7].nama = document.getElementById('nama-bahan').value.trim();
+                    data.bahan[_0x2b81d7].hargaBeli = parseFloat(document.getElementById('harga-beli-bahan').value) || 0;
+                    data.bahan[_0x2b81d7].jumlahBeli = parseFloat(document.getElementById('jumlah-beli-bahan').value) || 0;
+                    data.bahan[_0x2b81d7].satuanBeli = document.getElementById('satuan-beli-bahan').value;
+                    let _0x16b042 = data.bahan[_0x2b81d7].jumlahBeli;
+                    let _0x25a623 = data.bahan[_0x2b81d7].satuanBeli;
+                    let _0x398031 = _0x25a623;
+                    if (_0x25a623 === 'kg') {
+                        _0x16b042 *= 1000;
+                        _0x398031 = 'gram';
+                    } else if (_0x25a623 === 'liter') {
+                        _0x16b042 *= 1000;
+                        _0x398031 = 'ml';
+                    }
+                    data.bahan[_0x2b81d7].hargaDasar = data.bahan[_0x2b81d7].hargaBeli / _0x16b042;
+                    data.bahan[_0x2b81d7].satuanDasar = _0x398031;
+                    renderBahan();
+                    updatePilihanBahan();
+                    updateResepPrices();
+                } else if (_0x4778be === 'resep') {
+                    const _0x27d142 = document.getElementById('pilihan-bahan-resep').value;
+                    const _0x1c00d4 = parseFloat(document.getElementById('jumlah-pakai-resep').value) || 0;
+                    const _0x27749f = data.bahan.find(_0x1a8c9b => _0x1a8c9b.id == _0x27d142);
+                    if (!_0x27749f) return;
+                    data.resep[_0x2b81d7].bahanId = _0x27749f.id;
+                    data.resep[_0x2b81d7].nama = _0x27749f.nama;
+                    data.resep[_0x2b81d7].jumlahPakai = _0x1c00d4;
+                    data.resep[_0x2b81d7].satuan = _0x27749f.satuanDasar;
+                    data.resep[_0x2b81d7].biaya = _0x27749f.hargaDasar * _0x1c00d4;
+                    renderResep();
+                } else if (_0x4778be === 'aset') {
+                    const _0x2d1a0e = document.getElementById('nama-aset').value.trim();
+                    const _0x3b299e = parseFloat(document.getElementById('harga-aset').value) || 0;
+                    const _0x4d5f9b = parseFloat(document.getElementById('residu-aset').value) || 0;
+                    const _0x48525b_ = parseFloat(document.getElementById('manfaat-aset').value) || 0;
+                    data.aset[_0x2b81d7] = { ...data.aset[_0x2b81d7], nama: _0x2d1a0e, harga: _0x3b299e, residu: _0x4d5f9b, manfaat: _0x48525b_, biayaBulanan: (_0x3b299e - _0x4d5f9b) / (_0x48525b_ * 12) };
+                    renderAset();
+                } else {
+                    data[_0x4778be][_0x2b81d7].nama = document.getElementById(`nama-${_0x4778be}`).value.trim();
+                    data[_0x4778be][_0x2b81d7].harga = parseFloat(document.getElementById(`harga-${_0x4778be}`).value) || 0;
+                    renderBiayaLain(_0x4778be);
+                }
+                cancelEdit(_0x4778be);
+                saveDataToLocal();
+            }
+            window.cancelEdit = function(_0x27f1c9) {
+                const _0x2b81d7 = document.getElementById(`btn-submit-${_0x27f1c9}`);
+                const _0x153bd4 = document.getElementById(`btn-cancel-${_0x27f1c9}`);
+                const _0x16b042 = {
+                    'bahan': window.tambahBahan,
+                    'resep': window.tambahKeResep,
+                    'aset': window.tambahAset,
+                    'tenaga': () => window.tambahBiayaLain('tenaga'),
+                    'overhead': () => window.tambahBiayaLain('overhead')
+                };
+                const _0x25a623 = {
+                    'bahan': 'Tambah ke Stok',
+                    'resep': 'Tambah ke Resep',
+                    'aset': 'Tambah Aset',
+                    'tenaga': 'Tambah Biaya',
+                    'overhead': 'Tambah Biaya'
+                };
+                const _0x398031 = {
+                    'bahan': 'w-full bg-blue-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-600 transition',
+                    'resep': 'w-full bg-green-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-green-600 transition',
+                    'aset': 'w-full bg-orange-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-orange-600 transition',
+                    'tenaga': 'w-full bg-indigo-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-600 transition',
+                    'overhead': 'w-full bg-purple-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-purple-600 transition'
+                };
+                _0x2b81d7.textContent = _0x25a623[_0x27f1c9];
+                _0x2b81d7.className = _0x398031[_0x27f1c9];
+                _0x2b81d7.onclick = _0x16b042[_0x27f1c9];
+                _0x153bd4.classList.add('hidden');
+                document.getElementById(`form-${_0x27f1c9}`).reset();
+                editState = {
+                    tipe: null,
+                    id: null
+                };
+            };
+
+            function cancelAllEdits() {
+                ['bahan', 'resep', 'tenaga', 'aset', 'overhead'].forEach(_0x1a8c9b => {
+                    if (document.getElementById(`btn-cancel-${_0x1a8c9b}`) && !document.getElementById(`btn-cancel-${_0x1a8c9b}`).classList.contains('hidden')) {
+                        cancelEdit(_0x1a8c9b);
+                    }
+                });
+            }
+
+            function updateResepPrices() {
+                data.resep.forEach(_0x1a8c9b => {
+                    const _0x27f1c9 = data.bahan.find(_0x2b81d7 => _0x2b81d7.id === _0x1a8c9b.bahanId);
+                    if (_0x27f1c9) {
+                        _0x1a8c9b.biaya = _0x27f1c9.hargaDasar * _0x1a8c9b.jumlahPakai;
+                    }
+                });
+                renderResep();
+            }
+            window.tambahBahan = function() {
+                const _0x1c00d4 = document.getElementById('nama-bahan').value.trim();
+                const _0x27d142 = parseFloat(document.getElementById('harga-beli-bahan').value) || 0;
+                let _0x4380f7 = parseFloat(document.getElementById('jumlah-beli-bahan').value) || 0;
+                const _0x2d1a0e = document.getElementById('satuan-beli-bahan').value;
+                if (!_0x1c00d4 || _0x27d142 <= 0 || _0x4380f7 <= 0) {
+                    alert('Semua field bahan baku harus diisi dengan benar.');
+                    return;
+                }
+                let _0x3b299e = 0;
+                let _0x4d5f9b = _0x2d1a0e;
+                if (_0x2d1a0e === 'kg') {
+                    _0x4380f7 *= 1000;
+                    _0x4d5f9b = 'gram';
+                } else if (_0x2d1a0e === 'liter') {
+                    _0x4380f7 *= 1000;
+                    _0x4d5f9b = 'ml';
+                }
+                _0x3b299e = _0x27d142 / _0x4380f7;
+                data.bahan.push({
+                    id: Date.now() + Math.random(),
+                    nama: _0x1c00d4,
+                    hargaDasar: _0x3b299e,
+                    satuanDasar: _0x4d5f9b,
+                    hargaBeli: _0x27d142,
+                    jumlahBeli: parseFloat(document.getElementById('jumlah-beli-bahan').value) || 0,
+                    satuanBeli: _0x2d1a0e
+                });
+                renderBahan();
+                updatePilihanBahan();
+                document.getElementById('form-bahan').reset();
+                saveDataToLocal();
+            };
+
+            function renderBahan() {
+                const _0x1a8c9b = document.getElementById('tabel-bahan');
+                _0x1a8c9b.innerHTML = '';
+                data.bahan.forEach(_0x27f1c9 => {
+                    _0x1a8c9b.innerHTML += `<tr class="border-b"><td class="py-2 px-3">${_0x27f1c9.nama}</td><td class="py-2 px-3">${formatRupiah(_0x27f1c9.hargaDasar)} / ${_0x27f1c9.satuanDasar}</td><td class="py-2 px-3 text-center space-x-2"><button onclick="editItem('bahan', ${_0x27f1c9.id})" class="text-blue-600 hover:text-blue-800 text-sm">Edit</button><button onclick="hapusItem('bahan', ${_0x27f1c9.id})" class="text-red-500 hover:text-red-700 text-sm">Hapus</button></td></tr>`;
+                });
+            }
+
+            function updatePilihanBahan() {
+                const _0x1a8c9b = document.getElementById('pilihan-bahan-resep');
+                _0x1a8c9b.innerHTML = '<option value="">-- Pilih Bahan dari Stok --</option>';
+                data.bahan.forEach(_0x27f1c9 => {
+                    _0x1a8c9b.innerHTML += `<option value="${_0x27f1c9.id}">${_0x27f1c9.nama} (${_0x27f1c9.satuanDasar})</option>`;
+                });
+            }
+            window.tambahKeResep = function() {
+                const _0x27f1c9 = document.getElementById('pilihan-bahan-resep').value;
+                const _0x2b81d7 = parseFloat(document.getElementById('jumlah-pakai-resep').value) || 0;
+                if (!_0x27f1c9 || _0x2b81d7 <= 0) {
+                    alert('Pilih bahan dan masukkan jumlah pemakaian.');
+                    return;
+                }
+                const _0x153bd4 = data.bahan.find(_0x1a8c9b => _0x1a8c9b.id == _0x27f1c9);
+                if (!_0x153bd4) return;
+                const _0x16b042 = _0x153bd4.hargaDasar * _0x2b81d7;
+                data.resep.push({
+                    id: Date.now() + Math.random(),
+                    bahanId: _0x153bd4.id,
+                    nama: _0x153bd4.nama,
+                    jumlahPakai: _0x2b81d7,
+                    satuan: _0x153bd4.satuanDasar,
+                    biaya: _0x16b042
+                });
+                renderResep();
+                document.getElementById('form-resep').reset();
+                saveDataToLocal();
+            };
+
+            function renderResep() {
+                const _0x1a8c9b = document.getElementById('tabel-resep');
+                _0x1a8c9b.innerHTML = '';
+                let _0x27f1c9 = data.resep.reduce((_0x2b81d7, _0x153bd4) => _0x2b81d7 + _0x153bd4.biaya, 0);
+                data.resep.forEach(_0x16b042 => {
+                    _0x1a8c9b.innerHTML += `<tr class="border-b"><td class="py-2 px-3">${_0x16b042.nama}</td><td class="py-2 px-3">${_0x16b042.jumlahPakai} ${_0x16b042.satuan}</td><td class="py-2 px-3">${formatRupiah(_0x16b042.biaya)}</td><td class="py-2 px-3 text-center space-x-2"><button onclick="editItem('resep', ${_0x16b042.id})" class="text-blue-600 hover:text-blue-800 text-sm">Edit</button><button onclick="hapusItem('resep', ${_0x16b042.id})" class="text-red-500 hover:text-red-700 text-sm">Hapus</button></td></tr>`;
+                });
+                document.getElementById('total-resep').textContent = formatRupiah(_0x27f1c9);
+            }
+            window.tambahBiayaLain = function(_0x25a623) {
+                const _0x398031 = document.getElementById(`nama-${_0x25a623}`).value.trim();
+                const _0x1c00d4 = parseFloat(document.getElementById(`harga-${_0x25a623}`).value) || 0;
+                if (!_0x398031 || _0x1c00d4 <= 0) {
+                    alert('Deskripsi dan biaya harus diisi.');
+                    return;
+                }
+                data[_0x25a623].push({
+                    id: Date.now() + Math.random(),
+                    nama: _0x398031,
+                    harga: _0x1c00d4
+                });
+                renderBiayaLain(_0x25a623);
+                document.getElementById(`form-${_0x25a623}`).reset();
+                saveDataToLocal();
+            };
+
+            function renderBiayaLain(_0x1a8c9b) {
+                const _0x27f1c9 = document.getElementById(`tabel-${_0x1a8c9b}`);
+                _0x27f1c9.innerHTML = '';
+                let _0x2b81d7 = data[_0x1a8c9b].reduce((_0x153bd4, _0x16b042) => _0x153bd4 + _0x16b042.harga, 0);
+                data[_0x1a8c9b].forEach(_0x25a623 => {
+                    _0x27f1c9.innerHTML += `<tr class="border-b"><td class="py-2 px-4">${_0x25a623.nama}</td><td class="py-2 px-4">${formatRupiah(_0x25a623.harga)}</td><td class="py-2 px-4 text-center space-x-2"><button onclick="editItem('${_0x1a8c9b}', ${_0x25a623.id})" class="text-blue-600 hover:text-blue-800 text-sm">Edit</button><button onclick="hapusItem('${_0x1a8c9b}', ${_0x25a623.id})" class="text-red-500 hover:text-red-700 text-sm">Hapus</button></td></tr>`;
+                });
+                document.getElementById(`total-${_0x1a8c9b}`).textContent = formatRupiah(_0x2b81d7);
+            }
+            window.tambahAset = function() {
+                const _0x398031 = document.getElementById('nama-aset').value.trim();
+                const _0x1c00d4 = parseFloat(document.getElementById('harga-aset').value) || 0;
+                const _0x27d142 = parseFloat(document.getElementById('residu-aset').value) || 0;
+                const _0x4380f7 = parseFloat(document.getElementById('manfaat-aset').value) || 0;
+                if (!_0x398031 || _0x1c00d4 <= 0 || _0x4380f7 <= 0) {
+                    alert('Nama, harga perolehan, dan masa manfaat aset harus diisi.');
+                    return;
+                }
+                if (_0x27d142 >= _0x1c00d4) {
+                    alert('Nilai residu tidak boleh lebih besar atau sama dengan harga perolehan.');
+                    return;
+                }
+                const _0x2d1a0e = (_0x1c00d4 - _0x27d142) / (_0x4380f7 * 12);
+                data.aset.push({
+                    id: Date.now() + Math.random(),
+                    nama: _0x398031,
+                    harga: _0x1c00d4,
+                    residu: _0x27d142,
+                    manfaat: _0x4380f7,
+                    biayaBulanan: _0x2d1a0e
+                });
+                renderAset();
+                document.getElementById('form-aset').reset();
+                saveDataToLocal();
+            };
+
+            function renderAset() {
+                const _0x1a8c9b = document.getElementById('tabel-aset');
+                _0x1a8c9b.innerHTML = '';
+                let _0x27f1c9 = data.aset.reduce((_0x2b81d7, _0x153bd4) => _0x2b81d7 + _0x153bd4.biayaBulanan, 0);
+                data.aset.forEach(_0x16b042 => {
+                    _0x1a8c9b.innerHTML += `<tr class="border-b"><td class="py-2 px-3">${_0x16b042.nama}</td><td class="py-2 px-3">${formatRupiah(_0x16b042.biayaBulanan)}</td><td class="py-2 px-3 text-center space-x-2"><button onclick="editItem('aset', ${_0x16b042.id})" class="text-blue-600 hover:text-blue-800 text-sm">Edit</button><button onclick="hapusItem('aset', ${_0x16b042.id})" class="text-red-500 hover:text-red-700 text-sm">Hapus</button></td></tr>`;
+                });
+                document.getElementById('total-aset').textContent = formatRupiah(_0x27f1c9);
+            }
+            window.hapusItem = function(_0x25a623, _0x398031) {
+                if (editState.id === _0x398031) cancelEdit(_0x25a623);
+                const _0x1c00d4 = data[_0x25a623].findIndex(_0x27d142 => _0x27d142.id === _0x398031);
+                if (_0x1c00d4 === -1) return;
+                if (_0x25a623 === 'bahan') {
+                    const _0x4380f7 = data.bahan[_0x1c00d4].id;
+                    data.resep = data.resep.filter(_0x2d1a0e => _0x2d1a0e.bahanId !== _0x4380f7);
+                    renderResep();
+                }
+                data[_0x25a623].splice(_0x1c00d4, 1);
+                if (_0x25a623 === 'bahan') {
+                    renderBahan();
+                    updatePilihanBahan();
+                } else if (_0x25a623 === 'resep') {
+                    renderResep();
+                } else if (_0x25a623 === 'aset') {
+                    renderAset();
+                } else if (_0x25a623 === 'produk') {
+                    renderProduk();
+                } else {
+                    renderBiayaLain(_0x25a623);
+                }
+                saveDataToLocal();
+            };
+            window.hitungSemua = function() {
+                const _0x1a8c9b = data.resep.reduce((_0x27f1c9, _0x2b81d7) => _0x27f1c9 + _0x2b81d7.biaya, 0);
+                if (_0x1a8c9b <= 0) {
+                    alert('Resep per porsi masih kosong. Silakan isi resep terlebih dahulu.');
+                    return;
+                }
+                const _0x153bd4 = parseFloat(document.getElementById('jumlah-porsi-batch').value) || 1;
+                const _0x16b042 = parseFloat(document.getElementById('jumlah-batch-bulan').value) || 1;
+                const _0x25a623 = parseFloat(document.getElementById('margin-profit').value) || 0;
+                const _0x398031 = _0x1a8c9b * _0x153bd4;
+                const _0x1c00d4 = data.tenaga.reduce((_0x27d142, _0x4380f7) => _0x27d142 + _0x4380f7.harga, 0);
+                const _0x2d1a0e = data.aset.reduce((_0x3b299e, _0x4d5f9b) => _0x3b299e + _0x4d5f9b.biayaBulanan, 0);
+                const _0x56a623 = data.overhead.reduce((_0x1c3e3e, _0x25a623) => _0x1c3e3e + _0x25a623.harga, 0);
+                const _0x48525b_ = _0x2d1a0e + _0x56a623;
+                const _0x4b66b7 = _0x48525b_ / _0x16b042;
+                const _0x192b95 = _0x398031 + _0x1c00d4 + _0x4b66b7;
+                const _0x2098d3 = _0x192b95 / _0x153bd4;
+                const _0x13d80a = _0x2098d3 * (1 + (_0x25a623 / 100));
+                const _0x2984b2 = Math.ceil(_0x13d80a / 100) * 100;
+                snapshotKalkulasi = {
+                    resep: [...data.resep],
+                    tenaga: [...data.tenaga],
+                    hppPerPorsi: _0x2098d3,
+                    hargaJual: _0x2984b2,
+                    parameter: {
+                        jumlahPorsiPerBatch: _0x153bd4,
+                        jumlahBatchPerBulan: _0x16b042,
+                        marginProfit: _0x25a623,
+                        alokasiBiayaTetapPerBatch: _0x4b66b7,
+                        totalBiayaBahanBatch: _0x398031,
+                        totalTenagaKerjaBatch: _0x1c00d4,
+                        totalHppBatch: _0x192b95
+                    }
+                };
+                document.getElementById('summary-bahan').textContent = formatRupiah(_0x398031);
+                document.getElementById('summary-tenaga').textContent = formatRupiah(_0x1c00d4);
+                document.getElementById('summary-biaya-tetap').textContent = formatRupiah(_0x4b66b7);
+                document.getElementById('hasil-total-hpp-batch').textContent = formatRupiah(_0x192b95);
+                document.getElementById('hasil-hpp-porsi').textContent = formatRupiah(_0x2098d3);
+                document.getElementById('hasil-harga-jual').textContent = formatRupiah(_0x2984b2);
+                document.getElementById('profit-percentage').textContent = `${_0x25a623}%`;
+                document.getElementById('hasil-kalkulasi').classList.remove('hidden');
+                document.getElementById('hasil-kalkulasi').scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+            };
+            window.simpanProduk = function() {
+                const _0x1a8c9b = document.getElementById('nama-produk-simpan').value.trim();
+                if (!_0x1a8c9b) {
+                    alert('Silakan masukkan nama produk terlebih dahulu.');
+                    return;
+                }
+                if (!snapshotKalkulasi) {
+                    alert('Lakukan perhitungan terlebih dahulu sebelum menyimpan.');
+                    return;
+                }
+                data.produk.push({
+                    id: Date.now(),
+                    nama: _0x1a8c9b,
+                    detail: snapshotKalkulasi
+                });
+                renderProduk();
+                resetKalkulator();
+                saveDataToLocal();
+            };
+            window.renderProduk = function() {
+                const _0x27f1c9 = document.getElementById('tabel-produk-tersimpan');
+                _0x27f1c9.innerHTML = '';
+                if (data.produk.length === 0) {
+                    _0x27f1c9.innerHTML = `<tr><td colspan="4" class="text-center text-gray-500 py-4">Belum ada produk yang disimpan.</td></tr>`;
+                    return;
+                }
+                data.produk.forEach(_0x2b81d7 => {
+                    _0x27f1c9.innerHTML += `<tr class="border-b"><td class="py-2 px-4 font-medium">${_0x2b81d7.nama}</td><td class="py-2 px-4">${formatRupiah(_0x2b81d7.detail.hppPerPorsi)}</td><td class="py-2 px-4 font-bold">${formatRupiah(_0x2b81d7.detail.hargaJual)}</td><td class="py-2 px-4 text-center space-x-2"><button onclick="lihatDetail(${_0x2b81d7.id})" class="text-green-600 hover:text-green-800 text-sm">Detail</button><button onclick="hapusItem('produk', ${_0x2b81d7.id})" class="text-red-500 hover:text-red-700 text-sm">Hapus</button></td></tr>`;
+                });
+            };
+            window.resetKalkulator = function() {
+                data.resep = [];
+                data.tenaga = [];
+                snapshotKalkulasi = null;
+                document.getElementById('jumlah-porsi-batch').value = 10;
+                document.getElementById('margin-profit').value = 50;
+                document.getElementById('nama-produk-simpan').value = '';
+                renderResep();
+                renderBiayaLain('tenaga');
+                document.getElementById('hasil-kalkulasi').classList.add('hidden');
+                document.querySelector('header').scrollIntoView({
+                    behavior: 'smooth'
+                });
+            };
+            window.lihatDetail = function(_0x153bd4) {
+                const _0x16b042 = data.produk.find(_0x16b042 => _0x16b042.id === _0x153bd4);
+                if (!_0x16b042) return;
+                const {
+                    detail: _0x25a623
+                } = _0x16b042;
+                const {
+                    parameter: _0x398031
+                } = _0x25a623;
+                document.getElementById('modal-title').textContent = `Detail: ${_0x16b042.nama}`;
+                let _0x1c00d4 = _0x25a623.resep.map(_0x1a8c9b => `<div class="flex justify-between"><span>${_0x1a8c9b.nama} (${_0x1a8c9b.jumlahPakai} ${_0x1a8c9b.satuan})</span> <span>${formatRupiah(_0x1a8c9b.biaya)}</span></div>`).join('');
+                let _0x27d142 = _0x25a623.tenaga.map(_0x1a8c9b => `<div class="flex justify-between"><span>${_0x1a8c9b.nama}</span> <span>${formatRupiah(_0x1a8c9b.harga)}</span></div>`).join('');
+                const _0x4380f7 = document.getElementById('modal-content');
+                _0x4380f7.innerHTML = `<div class="grid grid-cols-2 gap-x-4 gap-y-1"><span class="font-semibold">HPP per Porsi:</span> <span class="text-right font-bold">${formatRupiah(_0x25a623.hppPerPorsi)}</span><span class="font-semibold">Harga Jual:</span> <span class="text-right font-bold">${formatRupiah(_0x25a623.hargaJual)}</span></div><hr><div><h4 class="font-bold mb-1">Resep (Biaya per Porsi)</h4><div class="p-2 bg-gray-100 rounded">${_0x1c00d4||'Tidak ada.'}</div></div><div><h4 class="font-bold mb-1">Tenaga Kerja (Biaya per Batch)</h4><div class="p-2 bg-gray-100 rounded">${_0x27d142||'Tidak ada.'}</div></div><div><h4 class="font-bold mb-1">Parameter Kalkulasi</h4> <div class="p-2 bg-gray-100 rounded grid grid-cols-2 gap-x-4 gap-y-1"><span>Jumlah Porsi/Batch:</span> <span class="text-right">${_0x398031.jumlahPorsiPerBatch}</span><span>Jumlah Batch/Bulan:</span> <span class="text-right">${_0x398031.jumlahBatchPerBulan}</span><span>Margin Profit:</span> <span class="text-right">${_0x398031.marginProfit}%</span><span class="font-semibold col-span-2 mt-2 pt-2 border-t">Rincian HPP per Batch</span><span>Total Biaya Bahan:</span><span class="text-right">${formatRupiah(_0x398031.totalBiayaBahanBatch)}</span><span>Total Biaya Tenaga:</span><span class="text-right">${formatRupiah(_0x398031.totalTenagaKerjaBatch)}</span><span>Alokasi Biaya Tetap:</span><span class="text-right">${formatRupiah(_0x398031.alokasiBiayaTetapPerBatch)}</span><span class="font-bold">Total HPP Batch:</span><span class="text-right font-bold">${formatRupiah(_0x398031.totalHppBatch)}</span></div></div>`;
+                document.getElementById('modal-btn-edit').onclick = () => muatProdukUntukEdit(_0x153bd4);
+                document.getElementById('modal-detail-produk').classList.remove('hidden');
+            };
+            window.tutupModal = function() {
+                document.getElementById('modal-detail-produk').classList.add('hidden');
+            };
+            window.openImportConfirmation = function() {
+                document.getElementById('modal-confirm-import').classList.remove('hidden');
+            };
+            window.tutupModalImport = function() {
+                document.getElementById('modal-confirm-import').classList.add('hidden');
+            };
+            window.muatProdukUntukEdit = function(_0x2d1a0e) {
+                const _0x3b299e = data.produk.findIndex(_0x1a8c9b => _0x1a8c9b.id === _0x2d1a0e);
+                if (_0x3b299e === -1) return;
+                const _0x4d5f9b = data.produk[_0x3b299e];
+                const {
+                    detail: _0x56a623
+                } = _0x4d5f9b;
+                data.resep = [..._0x56a623.resep];
+                data.tenaga = [..._0x56a623.tenaga];
+                document.getElementById('jumlah-porsi-batch').value = _0x56a623.parameter.jumlahPorsiPerBatch;
+                document.getElementById('jumlah-batch-bulan').value = _0x56a623.parameter.jumlahBatchPerBulan;
+                document.getElementById('margin-profit').value = _0x56a623.parameter.marginProfit;
+                document.getElementById('nama-produk-simpan').value = _0x4d5f9b.nama;
+                hapusItem('produk', _0x2d1a0e);
+                renderResep();
+                renderBiayaLain('tenaga');
+                tutupModal();
+                alert(`Data untuk "${_0x4d5f9b.nama}" telah dimuat. Silakan modifikasi dan hitung ulang.`);
+                document.querySelector('header').scrollIntoView({
+                    behavior: 'smooth'
+                });
+            };
+            window.handleLogoUpload = function(_0x1c3e3e) {
+                const _0x25a623 = _0x1c3e3e.target.files[0];
+                if (_0x25a623) {
+                    const _0x398031 = new FileReader();
+                    _0x398031.onload = function(_0x1c00d4) {
+                        const _0x27d142 = _0x1c00d4.target.result;
+                        document.getElementById('logo-image').src = _0x27d142;
+                        localStorage.setItem('userLogo', _0x27d142);
+                    };
+                    _0x398031.readAsDataURL(_0x25a623);
+                }
+            };
+            window.handleExcelImport = function(_0x4380f7) {
+                const _0x2d1a0e = _0x4380f7.target.files[0];
+                if (!_0x2d1a0e) return;
+                const _0x3b299e = new FileReader();
+                _0x3b299e.onload = _0x4d5f9b => {
+                    try {
+                        const _0x56a623 = _0x4d5f9b.target.result;
+                        const _0x1c3e3e = XLSX.read(_0x56a623, {
+                            type: 'binary'
+                        });
+                        data = {
+                            bahan: [],
+                            resep: [],
+                            tenaga: [],
+                            overhead: [],
+                            aset: [],
+                            produk: []
+                        };
+                        if (_0x1c3e3e.SheetNames.includes('Master Bahan Baku')) {
+                            const _0x25a623 = _0x1c3e3e.Sheets['Master Bahan Baku'];
+                            const _0x398031 = XLSX.utils.sheet_to_json(_0x25a623);
+                            _0x398031.forEach(_0x1c00d4 => {
+                                data.bahan.push({
+                                    id: Date.now() + Math.random(),
+                                    nama: _0x1c00d4['Nama Bahan'],
+                                    hargaDasar: _0x1c00d4['Harga Dasar per Satuan'],
+                                    satuanDasar: _0x1c00d4['Satuan Dasar']
+                                });
+                            });
+                        }
+                        if (_0x1c3e3e.SheetNames.includes('Master Biaya Tetap')) {
+                            const _0x27d142 = _0x1c3e3e.Sheets['Master Biaya Tetap'];
+                            const _0x4380f7 = XLSX.utils.sheet_to_json(_0x27d142, {
+                                header: 1
+                            });
+                            let _0x2d1a0e = null;
+                            _0x4380f7.forEach(_0x3b299e => {
+                                if (typeof _0x3b299e[0] === 'string' && _0x3b299e[0].includes('DEPRESIASI ASET')) _0x2d1a0e = 'aset';
+                                else if (typeof _0x3b299e[0] === 'string' && _0x3b299e[0].includes('OVERHEAD TETAP')) _0x2d1a0e = 'overhead';
+                                else if (_0x3b299e.length > 1 && _0x2d1a0e) {
+                                    if (_0x2d1a0e === 'aset' && _0x3b299e[0] !== 'Nama Aset') {
+                                        data.aset.push({
+                                            id: Date.now() + Math.random(),
+                                            nama: _0x3b299e[0],
+                                            biayaBulanan: _0x3b299e[1]
+                                        });
+                                    } else if (_0x2d1a0e === 'overhead' && _0x3b299e[0] !== 'Deskripsi') {
+                                        data.overhead.push({
+                                            id: Date.now() + Math.random(),
+                                            nama: _0x3b299e[0],
+                                            harga: _0x3b299e[1]
+                                        });
+                                    }
+                                }
+                            });
+                        }
+                        if (_0x1c3e3e.SheetNames.includes('Ringkasan Produk') && _0x1c3e3e.SheetNames.includes('Detail Resep Produk')) {
+                            const _0x4d5f9b = _0x1c3e3e.Sheets['Ringkasan Produk'];
+                            const _0x56a623 = XLSX.utils.sheet_to_json(_0x4d5f9b);
+                            const _0x1c3e3e = _0x1c3e3e.Sheets['Detail Resep Produk'];
+                            const _0x25a623 = XLSX.utils.sheet_to_json(_0x1c3e3e, {
+                                header: 1
+                            });
+                            _0x56a623.forEach(_0x398031 => {
+                                let _0x1c00d4 = {
+                                    resep: [],
+                                    tenaga: [],
+                                    hppPerPorsi: _0x398031['HPP per Porsi'],
+                                    hargaJual: _0x398031['Harga Jual'],
+                                    parameter: {
+                                        jumlahPorsiPerBatch: _0x398031['Jumlah Porsi per Batch'],
+                                        jumlahBatchPerBulan: _0x398031['Jumlah Batch per Bulan'],
+                                        marginProfit: _0x398031['Margin Profit (%)']
+                                    }
+                                };
+                                let _0x27d142 = false,
+                                    _0x4380f7 = false,
+                                    _0x2d1a0e = false;
+                                _0x25a623.forEach(_0x3b299e => {
+                                    if (typeof _0x3b299e[0] === 'string' && _0x3b299e[0].includes(`PRODUK: ${_0x398031['Nama Produk'].toUpperCase()}`)) {
+                                        _0x27d142 = true;
+                                        return;
+                                    }
+                                    if (_0x27d142 && typeof _0x3b299e[0] === 'string' && _0x3b299e[0].includes('PRODUK:')) {
+                                        _0x27d142 = false;
+                                    }
+                                    if (_0x27d142) {
+                                        if (_0x3b299e[0] === 'Bahan Resep') {
+                                            _0x4380f7 = true;
+                                            _0x2d1a0e = false;
+                                            return;
+                                        }
+                                        if (_0x3b299e[0] === 'Biaya Tenaga Kerja') {
+                                            _0x2d1a0e = true;
+                                            _0x4380f7 = false;
+                                            return;
+                                        }
+                                        if (_0x4380f7 && _0x3b299e[0]) {
+                                            _0x1c00d4.resep.push({
+                                                nama: _0x3b299e[0],
+                                                jumlahPakai: _0x3b299e[1],
+                                                satuan: _0x3b299e[2],
+                                                biaya: _0x3b299e[3]
+                                            });
+                                        }
+                                        if (_0x2d1a0e && _0x3b299e[0]) {
+                                            _0x1c00d4.tenaga.push({
+                                                nama: _0x3b299e[0],
+                                                harga: _0x3b299e[1]
+                                            });
+                                        }
+                                    }
+                                });
+                                data.produk.push({
+                                    id: Date.now() + Math.random(),
+                                    nama: _0x398031['Nama Produk'],
+                                    detail: _0x1c00d4
+                                });
+                            });
+                        }
+                        saveDataToLocal();
+                        renderAll();
+                        alert('Data berhasil diimpor!');
+                    } catch (error) {
+                        console.error("Error importing file:", error);
+                        alert("Gagal mengimpor file. Pastikan format file benar.");
+                    } finally {
+                        _0x4380f7.target.value = '';
+                    }
+                };
+                _0x3b299e.readAsBinaryString(_0x2d1a0e);
+            };
+            window.exportToExcel = function() {
+                if (data.produk.length === 0 && data.bahan.length === 0 && data.aset.length === 0) {
+                    alert('Tidak ada data untuk diekspor.');
+                    return;
+                }
+                const _0x1a8c9b = XLSX.utils.book_new();
+                const _0x27f1c9 = data.produk.map(_0x2b81d7 => ({
+                    'Nama Produk': _0x2b81d7.nama,
+                    'HPP per Porsi': _0x2b81d7.detail.hppPerPorsi,
+                    'Harga Jual': _0x2b81d7.detail.hargaJual,
+                    'Jumlah Porsi per Batch': _0x2b81d7.detail.parameter.jumlahPorsiPerBatch,
+                    'Jumlah Batch per Bulan': _0x2b81d7.detail.parameter.jumlahBatchPerBulan,
+                    'Margin Profit (%)': _0x2b81d7.detail.parameter.marginProfit
+                }));
+                const _0x153bd4 = XLSX.utils.json_to_sheet(_0x27f1c9);
+                _0x153bd4['!cols'] = [{
+                    wch: 30
+                }, {
+                    wch: 20
+                }, {
+                    wch: 20
+                }, {
+                    wch: 20
+                }, {
+                    wch: 25
+                }, {
+                    wch: 20
+                }];
+                XLSX.utils.book_append_sheet(_0x1a8c9b, _0x153bd4, "Ringkasan Produk");
+                let _0x16b042 = [];
+                data.produk.forEach(_0x25a623 => {
+                    _0x16b042.push({
+                        A: `PRODUK: ${_0x25a623.nama.toUpperCase()}`
+                    });
+                    _0x16b042.push({
+                        A: 'Bahan Resep',
+                        B: 'Jumlah',
+                        C: 'Satuan',
+                        D: 'Biaya'
+                    });
+                    _0x25a623.detail.resep.forEach(_0x398031 => {
+                        _0x16b042.push({
+                            A: _0x398031.nama,
+                            B: _0x398031.jumlahPakai,
+                            C: _0x398031.satuan,
+                            D: _0x398031.biaya
+                        });
+                    });
+                    _0x16b042.push({});
+                    _0x16b042.push({
+                        A: 'Biaya Tenaga Kerja',
+                        B: 'Biaya'
+                    });
+                    _0x25a623.detail.tenaga.forEach(_0x1c00d4 => {
+                        _0x16b042.push({
+                            A: _0x1c00d4.nama,
+                            B: _0x1c00d4.harga
+                        });
+                    });
+                    _0x16b042.push({});
+                });
+                const _0x27d142 = XLSX.utils.json_to_sheet(_0x16b042, {
+                    skipHeader: true
+                });
+                _0x27d142['!cols'] = [{
+                    wch: 30
+                }, {
+                    wch: 15
+                }, {
+                    wch: 15
+                }, {
+                    wch: 20
+                }];
+                XLSX.utils.book_append_sheet(_0x1a8c9b, _0x27d142, "Detail Resep Produk");
+                const _0x4380f7 = data.bahan.map(_0x2d1a0e => ({
+                    'Nama Bahan': _0x2d1a0e.nama,
+                    'Harga Dasar per Satuan': _0x2d1a0e.hargaDasar,
+                    'Satuan Dasar': _0x2d1a0e.satuanDasar
+                }));
+                const _0x3b299e = XLSX.utils.json_to_sheet(_0x4380f7);
+                _0x3b299e['!cols'] = [{
+                    wch: 30
+                }, {
+                    wch: 25
+                }, {
+                    wch: 15
+                }];
+                XLSX.utils.book_append_sheet(_0x1a8c9b, _0x3b299e, "Master Bahan Baku");
+                let _0x4d5f9b = [];
+                _0x4d5f9b.push({
+                    A: 'BIAYA DEPRESIASI ASET (BULANAN)'
+                });
+                _0x4d5f9b.push({
+                    A: 'Nama Aset',
+                    B: 'Biaya per Bulan'
+                });
+                data.aset.forEach(_0x56a623 => {
+                    _0x4d5f9b.push({
+                        A: _0x56a623.nama,
+                        B: _0x56a623.biayaBulanan
+                    });
+                });
+                _0x4d5f9b.push({});
+                _0x4d5f9b.push({
+                    A: 'BIAYA OVERHEAD TETAP (BULANAN)'
+                });
+                _0x4d5f9b.push({
+                    A: 'Deskripsi',
+                    B: 'Biaya per Bulan'
+                });
+                data.overhead.forEach(_0x1c3e3e => {
+                    _0x4d5f9b.push({
+                        A: _0x1c3e3e.nama,
+                        B: _0x1c3e3e.harga
+                    });
+                });
+                const _0x1c3e3e_ = XLSX.utils.json_to_sheet(_0x4d5f9b, {
+                    skipHeader: true
+                });
+                _0x1c3e3e_['!cols'] = [{
+                    wch: 30
+                }, {
+                    wch: 20
+                }];
+                XLSX.utils.book_append_sheet(_0x1a8c9b, _0x1c3e3e_, "Master Biaya Tetap");
+                XLSX.writeFile(_0x1a8c9b, "Laporan_HPP_Produk.xlsx");
+            };
+            window.renderAll = function() {
+                renderBahan();
+                updatePilihanBahan();
+                renderResep();
+                renderAset();
+                renderBiayaLain('tenaga');
+                renderBiayaLain('overhead');
+                renderProduk();
+            };
+            const _0x1a8c9b = 'HPPCalculator#Aqurasi';
+            window.verifyAccess = function() {
+                const _0x27f1c9 = document.getElementById('password-input').value;
+                const _0x2b81d7 = document.getElementById('password-error');
+                if (_0x27f1c9 === _0x1a8c9b) {
+                    document.getElementById('password-overlay').classList.add('hidden');
+                    _0x153bd4();
+                } else {
+                    _0x2b81d7.classList.remove('hidden');
+                }
+            };
+
+            function _0x153bd4() {
+                const _0x16b042 = localStorage.getItem('userLogo');
+                if (_0x16b042) {
+                    document.getElementById('logo-image').src = _0x16b042;
+                    document.getElementById('logo-image-lock').src = _0x16b042;
+                }
+                loadDataFromLocal();
+                renderAll();
+            }
+            window.onload = () => {
+                document.getElementById('password-input').addEventListener('keyup', function(_0x25a623) {
+                    if (_0x25a623.key === 'Enter') {
+                        _0x25a623.preventDefault();
+                        verifyAccess();
+                    }
+                });
+                document.addEventListener('keydown', function(_0x398031) {
+                    if (_0x398031.key === 'F12' || (_0x398031.ctrlKey && _0x398031.shiftKey && _0x398031.key === 'I') || (_0x398031.ctrlKey && _0x398031.shiftKey && _0x398031.key === 'J') || (_0x398031.ctrlKey && _0x398031.key === 'U')) {
+                        _0x398031.preventDefault();
+                    }
+                });
+            };
+        })()
+    </script>
+</body>
+</html>
